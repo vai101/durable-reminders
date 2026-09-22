@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caygnus Durable Reminders Control Panel</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --primary: #38bdf8;
+            --success: #4ade80;
+            --warn: #fbbf24;
+            --danger: #f87171;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 24px;
+        }
+        .card {
+            background-color: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        h1, h2, h3 { margin-top: 0; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+        label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+        input, select, button {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background-color: #0f172a;
+            color: var(--text);
+            font-size: 14px;
+        }
+        button {
+            background-color: #0284c7;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover { background-color: #0369a1; }
+        .time-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 18px;
+            font-family: monospace;
+            background: #020617;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .btn-group { display: flex; gap: 8px; margin-top: 8px; }
+        .btn-group button { padding: 6px 12px; font-size: 12px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-top: 12px;
+        }
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        th { color: var(--muted); }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .badge-SCHEDULED { background-color: #1e3a5f; color: var(--primary); }
+        .badge-RUNNING { background-color: #451a03; color: var(--warn); }
+        .badge-DELIVERED { background-color: #064e3b; color: var(--success); }
+        .badge-CANCELLED { background-color: #334155; color: var(--muted); }
+        .badge-FAILED { background-color: #450a0a; color: var(--danger); }
+        .action-btn { width: auto; padding: 4px 8px; font-size: 12px; margin-right: 4px; }
+        .btn-danger { background-color: #b91c1c; }
+        .btn-danger:hover { background-color: #991b1b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div>
+        <h1>Durable Reminders Control Console</h1>
+        <p style="color: var(--muted);">Caygnus Product Engineering Challenge - Problem 3</p>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Controlled Virtual Clock</h2>
+            <div class="time-box">
+                <span id="currentTime">Loading...</span>
+            </div>
+            <div class="btn-group">
+                <button onclick="advanceTime(10, 'minutes')">+10m</button>
+                <button onclick="advanceTime(1, 'hours')">+1h</button>
+                <button onclick="advanceTime(6, 'hours')">+6h</button>
+                <button onclick="advanceTime(1, 'days')">+1d</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Schedule New Reminder</h2>
+            <form id="createForm" onsubmit="createReminder(event)">
+                <div style="margin-bottom: 8px;">
+                    <label>Content</label>
+                    <input type="text" id="content" required value="Follow-up conversation">
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <label>Local Target Time</label>
+                    <input type="datetime-local" id="localTime" required>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label>IANA Time Zone</label>
+                    <select id="timeZone">
+                        <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+                        <option value="America/New_York">America/New_York (EST/EDT)</option>
+                        <option value="Europe/London">Europe/London (GMT/BST)</option>
+                        <option value="UTC">UTC</option>
+                    </select>
+                </div>
+                <button type="submit">Create Reminder</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Tracked Reminders</h2>
+            <button onclick="refreshData()" style="width: auto; padding: 6px 16px;">Refresh</button>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th>Content</th>
+                <th>Zone</th>
+                <th>Scheduled Instant (UTC)</th>
+                <th>State</th>
+                <th>Ver</th>
+                <th>Attempts</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="remindersTable">
+            <tr><td colspan="7">Loading records...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const API = '/api/reminders';
+    const TIME_API = '/api/system/time';
+
+    async function loadTime() {
+        const res = await fetch(TIME_API);
+        const data = await res.json();
+        document.getElementById('currentTime').innerText = data.currentInstant;
+    }
+
+    async function advanceTime(amount, unit) {
+        await fetch(`${TIME_API}/advance`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ amount, unit })
+        });
+        await loadTime();
+        await refreshData();
+    }
+
+    async function refreshData() {
+        const res = await fetch(API);
+        const data = await res.json();
+        const tbody = document.getElementById('remindersTable');
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted)">No reminders registered.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.map(r => `
+            <tr>
+                <td><strong>${escapeHtml(r.content)}</strong><br><small style="color:var(--muted)">${r.id}</small></td>
+                <td>${r.timeZoneId}</td>
+                <td>${r.scheduledInstant}</td>
+                <td><span class="badge badge-${r.state}">${r.state}</span></td>
+                <td>${r.version}</td>
+                <td>${r.attempts ? r.attempts.length : 0} (retries: ${r.retryCount})</td>
+                <td>
+                    ${r.state === 'SCHEDULED' ? `
+                        <button class="action-btn btn-danger" onclick="cancelReminder('${r.id}')">Cancel</button>
+                    ` : '<span style="color:var(--muted)">Finalized</span>'}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function createReminder(e) {
+        e.preventDefault();
+        const content = document.getElementById('content').value;
+        const localScheduleTime = document.getElementById('localTime').value;
+        const timeZoneId = document.getElementById('timeZone').value;
+
+        await fetch(API, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ content, localScheduleTime, timeZoneId })
+        });
+        document.getElementById('createForm').reset();
+        initDateTimeInput();
+        await refreshData();
+    }
+
+    async function cancelReminder(id) {
+        await fetch(`${API}/${id}`, { method: 'DELETE' });
+        await refreshData();
+    }
+
+    function initDateTimeInput() {
+        const d = new Date(Date.now() + 3600000);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        document.getElementById('localTime').value = d.toISOString().slice(0, 16);
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    window.onload = async () => {
+        initDateTimeInput();
+        await loadTime();
+        await refreshData();
+        setInterval(loadTime, 5000);
+    };
+</script>
+</body>
+</html>
